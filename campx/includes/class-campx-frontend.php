@@ -19,6 +19,10 @@ class Frontend {
             'rest' => esc_url_raw( rest_url('campx/v1') ),
             'settings' => ['months'=>intval($s['calendar_months'] ?? 2), 'datepicker'=>true, 'thankyou_url'=>$thankyou]
         ]);
+        wp_localize_script('campx-frontend', 'CampXAjax', [
+            'url' => admin_url('admin-ajax.php'),
+            'nonce' => wp_create_nonce('campx_availability'),
+        ]);
         wp_enqueue_style('campx-frontend');
         if ( function_exists('wp_add_inline_style') ) { wp_add_inline_style('campx-frontend', \CampX\Plugin::color_css_vars() ); }
         wp_enqueue_script('campx-frontend');
