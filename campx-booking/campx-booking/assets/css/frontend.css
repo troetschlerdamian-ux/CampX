@@ -10,7 +10,8 @@
 
 /* ---- Cards & layout ---- */
 .campx-card{
-  background:#fff;
+  background:#ff3b30;
+  color:#fff;
   border-radius:14px;
   box-shadow:0 6px 22px rgba(16,24,40,.06);
   padding:16px;
