@@ -145,6 +145,21 @@
   font-size:14px;
   background:#fff;
 }
+.campx-out{
+  padding:10px 12px;
+  border-radius:10px;
+  background:rgba(16,24,40,.06);
+  color:var(--campx-text);
+  font-size:14px;
+}
+.campx-out.success{
+  background:rgba(46,182,125,.14);
+  color:#1b7b56;
+}
+.campx-out.error{
+  background:rgba(224,30,90,.14);
+  color:#8f123b;
+}
 @media (max-width: 720px){
   .campx-form{ grid-template-columns: 1fr; }
 }
