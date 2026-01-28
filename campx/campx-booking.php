@@ -23,6 +23,7 @@ require_once CAMPX_PATH . 'includes/class-campx-plugin.php';
 require_once CAMPX_PATH . 'includes/class-campx-db.php';
 require_once CAMPX_PATH . 'includes/class-campx-cpt.php';
 require_once CAMPX_PATH . 'includes/class-campx-admin.php';
+require_once CAMPX_PATH . 'includes/class-campx-ajax.php';
 require_once CAMPX_PATH . 'includes/class-campx-availability.php';
 require_once CAMPX_PATH . 'includes/class-campx-rest.php';
 require_once CAMPX_PATH . 'includes/class-campx-ics.php';

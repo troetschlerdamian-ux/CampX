@@ -8,6 +8,7 @@ class Plugin {
         add_action( 'init', [ '\CampX\CPT', 'register' ] );
         add_action( 'init', [ '\CampX\Admin', 'init' ] );
         add_action( 'init', [ '\CampX\Frontend', 'init' ] );
+        add_action( 'init', [ '\CampX\Ajax', 'init' ] );
         add_action( 'rest_api_init', [ '\CampX\Rest', 'register_routes' ] );
         add_action( 'init', [ '\CampX\ICS', 'listen' ] );
     }
