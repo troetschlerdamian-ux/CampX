@@ -2,6 +2,10 @@
 namespace CampX;
 if ( ! defined( 'ABSPATH' ) ) exit;
 
+if ( class_exists( __NAMESPACE__ . '\\Admin' ) ) {
+    return;
+}
+
 class Admin {
 
     public static function init(){
