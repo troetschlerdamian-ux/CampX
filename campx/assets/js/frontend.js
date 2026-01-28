@@ -213,5 +213,76 @@
     if(sInit && eInit){
       document.querySelectorAll('[data-campx-catalog]').forEach(cat=> refreshCatalog(cat, sInit, eInit));
     }
+
+    const bookingForm = document.querySelector('[data-campx-form]');
+    if(bookingForm){
+      const out = bookingForm.querySelector('[data-campx-out]');
+      const submitBtn = bookingForm.querySelector('[data-campx-submit]');
+      const setOut = (msg, cls)=>{
+        if(!out) return;
+        out.textContent = msg || '';
+        out.className = 'campx-out'+(cls?(' '+cls):'');
+      };
+
+      bookingForm.addEventListener('submit', async (e)=>{
+        e.preventDefault();
+        setOut('');
+
+        const resId = bookingForm.getAttribute('data-res-id') || '';
+        if(!resId){
+          setOut('Bitte zuerst eine Ressource auswählen.', 'error');
+          return;
+        }
+
+        const payload = {
+          resource_id: resId,
+          start_date: bookingForm.querySelector('input[name="start_date"]')?.value || '',
+          end_date: bookingForm.querySelector('input[name="end_date"]')?.value || '',
+          units: bookingForm.querySelector('input[name="units"]')?.value || '1',
+          persons: bookingForm.querySelector('input[name="persons"]')?.value || '1',
+          name: bookingForm.querySelector('input[name="name"]')?.value || '',
+          email: bookingForm.querySelector('input[name="email"]')?.value || '',
+          phone: bookingForm.querySelector('input[name="phone"]')?.value || '',
+          notes: bookingForm.querySelector('textarea[name="notes"]')?.value || '',
+          company: bookingForm.querySelector('input[name="company"]')?.value || '',
+        };
+
+        if(submitBtn){
+          submitBtn.disabled = true;
+          submitBtn.dataset.originalText = submitBtn.textContent || '';
+          submitBtn.textContent = 'Sende…';
+        }
+
+        try{
+          const endpoint = (window.CampX && window.CampX.rest) ? `${window.CampX.rest}/book` : '/wp-json/campx/v1/book';
+          const res = await fetch(endpoint, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+          const json = await res.json().catch(()=> ({}));
+          if(!res.ok || !json || json.ok !== true){
+            const msg = (json && (json.message || (json.data && json.data.message))) || 'Die Anfrage konnte nicht gespeichert werden.';
+            setOut(msg, 'error');
+          }else{
+            const thanks = json.thankyou || (window.CampX && window.CampX.settings && window.CampX.settings.thankyou_url) || '';
+            setOut('Vielen Dank! Ihre Anfrage wurde gespeichert.', 'success');
+            bookingForm.reset();
+            if(thanks){
+              window.location.href = thanks;
+            }
+          }
+        }catch(err){
+          console.error('[CampX] booking error', err);
+          setOut('Es gab ein Problem beim Senden der Anfrage.', 'error');
+        }finally{
+          if(submitBtn){
+            submitBtn.disabled = false;
+            submitBtn.textContent = submitBtn.dataset.originalText || submitBtn.textContent;
+          }
+        }
+      });
+    }
   });
 })();
