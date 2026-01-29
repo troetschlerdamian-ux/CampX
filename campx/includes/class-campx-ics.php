@@ -46,7 +46,7 @@ class ICS {
         $q = new \WP_Query([
             'post_type'=>'campx_booking',
             'posts_per_page'=>-1,
-            'post_status'=>'any',
+            'post_status'=>['publish', 'private', 'pending', 'draft', 'future'],
             'meta_query'=>[
                 'relation' => 'AND',
                 ['key'=>'_campx_resource_id','value'=>$resource_id,'compare'=>'='],
@@ -75,7 +75,7 @@ class ICS {
         $q = new \WP_Query([
             'post_type'=>'campx_booking',
             'posts_per_page'=>-1,
-            'post_status'=>'any',
+            'post_status'=>['publish', 'private', 'pending', 'draft', 'future'],
             'meta_query'=>self::status_meta_query(),
         ]);
         foreach($q->posts as $p){
