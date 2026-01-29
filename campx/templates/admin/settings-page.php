@@ -47,7 +47,7 @@
 
   <?php
   $token = $s['ics_token'] ?? '';
-  $all_url = home_url('/campx.ics');
+  $all_url = add_query_arg('campx_ics', 'all', home_url('/'));
   if ( ! empty($token) ) {
       $all_url = add_query_arg(['token' => $token], $all_url);
   }

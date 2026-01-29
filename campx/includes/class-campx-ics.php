@@ -9,6 +9,12 @@ class ICS {
             $type = sanitize_text_field($_GET['campx_ics']);
         }
         if ( empty($type) ) {
+            $request_path = isset($_SERVER['REQUEST_URI']) ? wp_parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) : '';
+            if ( $request_path && preg_match('#/campx\.ics$#', $request_path) ) {
+                $type = 'all';
+            }
+        }
+        if ( empty($type) ) {
             return;
         }
         $raw_id = get_query_var('id');
