@@ -48,7 +48,11 @@
   <?php
   $token = $s['ics_token'] ?? '';
   if ( ! empty($token) ) {
-      $all_url = home_url('/campx-' . $token . '.ics');
+      if ( preg_match('/^[A-Za-z0-9_-]+$/', $token) ) {
+          $all_url = home_url('/campx-' . rawurlencode($token) . '.ics');
+      } else {
+          $all_url = add_query_arg(['campx_ics' => 'all', 'token' => $token], home_url('/'));
+      }
   } else {
       $all_url = home_url('/campx.ics');
   }

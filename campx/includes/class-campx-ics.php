@@ -13,14 +13,15 @@ class ICS {
             if ( $request_path && preg_match('#/campx\.ics/?$#', $request_path) ) {
                 $type = 'all';
             }
-            if ( empty($type) && $request_path && preg_match('#/campx-([A-Za-z0-9]+)\.ics/?$#', $request_path, $matches) ) {
+            if ( empty($type) && $request_path && preg_match('#/campx-([A-Za-z0-9_-]+)\.ics/?$#', $request_path, $matches) ) {
                 $type = 'all';
                 if ( ! empty($matches[1]) ) {
-                    $_GET['token'] = $matches[1];
+                    $token = rawurldecode($matches[1]);
+                    $_GET['token'] = $token;
                     if ( function_exists('set_query_var') ) {
-                        set_query_var('token', $matches[1]);
+                        set_query_var('token', $token);
                     } elseif ( isset($GLOBALS['wp_query']) && is_object($GLOBALS['wp_query']) ) {
-                        $GLOBALS['wp_query']->query_vars['token'] = $matches[1];
+                        $GLOBALS['wp_query']->query_vars['token'] = $token;
                     }
                 }
             }
