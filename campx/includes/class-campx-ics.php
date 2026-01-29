@@ -11,17 +11,34 @@ class ICS {
         if ( empty($type) ) {
             return;
         }
-        $id = absint(get_query_var('id') ?: ($_GET['id'] ?? 0));
+        $raw_id = get_query_var('id');
+        if ( empty($raw_id) && isset($_GET['id']) ) {
+            $raw_id = sanitize_text_field($_GET['id']);
+        }
+        $id = absint($raw_id);
+        if ( ! $id && $type === 'resource' && ! empty($raw_id) ) {
+            $resource = get_page_by_path(sanitize_title($raw_id), OBJECT, 'campx_resource');
+            if ( $resource ) {
+                $id = (int) $resource->ID;
+            }
+        }
         self::assert_token();
         if ( $type==='resource' && $id ) self::output_resource_ics($id);
         if ( $type==='booking'  && $id ) self::output_booking_ics($id);
         if ( $type==='all' ) self::output_all_ics();
+        if ( $type === 'resource' || $type === 'booking' ) {
+            status_header(400);
+            echo 'Invalid ICS request';
+            exit;
+        }
     }
 
     protected static function headers($filename='campx.ics'){
         nocache_headers();
         header('Content-Type: text/calendar; charset=utf-8');
         header('Content-Disposition: inline; filename="'.$filename.'"');
+        header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+        header('Pragma: no-cache');
     }
 
     public static function output_resource_ics($resource_id){
@@ -131,6 +148,7 @@ class ICS {
             "X-WR-CALNAME:$calname",
             'X-WR-CALDESC:' . $calname,
             'X-PUBLISHED-TTL:PT1H',
+            'REFRESH-INTERVAL;VALUE=DURATION:PT1H',
         ];
         if ( $timezone ) {
             $lines[] = 'X-WR-TIMEZONE:' . self::esc($timezone);
@@ -157,14 +175,6 @@ class ICS {
             $lines[] = $label . ': ' . $value;
         }
         return implode("\n", $lines);
-    }
-
-    protected static function status_meta_query(){
-        return [
-            'relation' => 'OR',
-            ['key'=>'_campx_status','value'=>'accepted','compare'=>'='],
-            ['key'=>'_campx_status','value'=>'requested','compare'=>'='],
-        ];
     }
 
     protected static function assert_token(){

@@ -6,6 +6,7 @@ class Plugin {
     public static function init(){
         load_plugin_textdomain( 'campx', false, dirname( plugin_basename( __FILE__ ) ) . '/../languages' );
         add_action( 'init', [ '\CampX\CPT', 'register' ] );
+        add_action( 'init', [ __CLASS__, 'add_rewrite_rules' ] );
         add_action( 'init', [ '\CampX\Admin', 'init' ] );
         add_action( 'init', [ '\CampX\Frontend', 'init' ] );
         add_action( 'init', [ '\CampX\Ajax', 'init' ] );
@@ -19,6 +20,12 @@ class Plugin {
         $vars[] = 'id';
         $vars[] = 'token';
         return $vars;
+    }
+
+    public static function add_rewrite_rules(){
+        add_rewrite_rule( '^campx\.ics$', 'index.php?campx_ics=all', 'top' );
+        add_rewrite_rule( '^campx-resource-([^/]+)\.ics$', 'index.php?campx_ics=resource&id=$matches[1]', 'top' );
+        add_rewrite_rule( '^campx-booking-([0-9]+)\.ics$', 'index.php?campx_ics=booking&id=$matches[1]', 'top' );
     }
 
     public static function get_settings(){

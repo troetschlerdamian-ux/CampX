@@ -47,13 +47,13 @@
 
   <?php
   $token = $s['ics_token'] ?? '';
-  $resource_args = ['campx_ics' => 'resource', 'id' => 'RESOURCE_ID'];
-  $all_args = ['campx_ics' => 'all'];
+  $resource_url = home_url('/campx-resource-RESOURCE_ID.ics');
+  $all_url = home_url('/campx.ics');
   if ( ! empty($token) ) {
-      $resource_args['token'] = $token;
-      $all_args['token'] = $token;
+      $resource_url = add_query_arg(['token' => $token], $resource_url);
+      $all_url = add_query_arg(['token' => $token], $all_url);
   }
   ?>
-  <p><strong>ICS:</strong> <?php _e('Ressourcen-Kalender','campx');?> <code><?php echo esc_html( add_query_arg($resource_args, home_url('/')) ); ?></code></p>
-  <p><strong>ICS:</strong> <?php _e('Alle Buchungen','campx');?> <code><?php echo esc_html( add_query_arg($all_args, home_url('/')) ); ?></code></p>
+  <p><strong>ICS:</strong> <?php _e('Ressourcen-Kalender','campx');?> <code><?php echo esc_html( $resource_url ); ?></code></p>
+  <p><strong>ICS:</strong> <?php _e('Alle Buchungen','campx');?> <code><?php echo esc_html( $all_url ); ?></code></p>
 </div>
