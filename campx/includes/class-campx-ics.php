@@ -41,13 +41,15 @@ class ICS {
             if ( $event ) $events[] = $event;
         }
         self::headers('campx-resource-'.$resource_id.'.ics');
-        echo self::wrap( implode("\r\n", $events) );
+        $calendar_name = sprintf('%s – %s', get_bloginfo('name'), get_the_title($resource_id));
+        echo self::wrap( implode("\r\n", $events), $calendar_name );
         exit;
     }
 
     public static function output_booking_ics($booking_id){
         self::headers('campx-booking-'.$booking_id.'.ics');
-        echo self::wrap( self::booking_to_vevent($booking_id) );
+        $calendar_name = sprintf('%s – %s', get_bloginfo('name'), __('Buchung', 'campx'));
+        echo self::wrap( self::booking_to_vevent($booking_id), $calendar_name );
         exit;
     }
 
@@ -64,7 +66,8 @@ class ICS {
             if ( $event ) $events[] = $event;
         }
         self::headers('campx-bookings.ics');
-        echo self::wrap( implode("\r\n", $events) );
+        $calendar_name = sprintf('%s – %s', get_bloginfo('name'), __('Buchungen', 'campx'));
+        echo self::wrap( implode("\r\n", $events), $calendar_name );
         exit;
     }
 
@@ -74,22 +77,86 @@ class ICS {
         if ( ! $start || ! $end ) {
             return '';
         }
-        $name  = get_post_meta($booking_id,'_campx_customer_name',true);
-        $res_id= (int) get_post_meta($booking_id,'_campx_resource_id',true);
-        $res   = get_the_title($res_id);
-        $uid   = $booking_id . '@' . parse_url(home_url(), PHP_URL_HOST);
-        $dtstamp = gmdate('Ymd\THis\Z');
+        $name   = get_post_meta($booking_id,'_campx_customer_name',true);
+        $email  = get_post_meta($booking_id,'_campx_customer_email',true);
+        $phone  = get_post_meta($booking_id,'_campx_customer_phone',true);
+        $units  = get_post_meta($booking_id,'_campx_units',true);
+        $persons= get_post_meta($booking_id,'_campx_persons',true);
+        $notes  = get_post_meta($booking_id,'_campx_notes',true);
+        $status = get_post_meta($booking_id,'_campx_status',true) ?: 'requested';
+        $res_id = (int) get_post_meta($booking_id,'_campx_resource_id',true);
+        $res    = get_the_title($res_id);
+        $uid    = $booking_id . '@' . parse_url(home_url(), PHP_URL_HOST);
+        $dtstamp = get_post_modified_time('Ymd\THis\Z', true, $booking_id);
+        if ( ! $dtstamp ) {
+            $dtstamp = gmdate('Ymd\THis\Z');
+        }
         $dtstart = date('Ymd', strtotime($start));
         $dtend   = date('Ymd', strtotime($end));
         $summary = self::esc( sprintf('%s – %s', $res, $name) );
-        $desc    = self::esc( get_post_meta($booking_id,'_campx_notes',true) );
+        $status_label = [
+            'accepted' => __('Bestätigt', 'campx'),
+            'requested' => __('Angefragt', 'campx'),
+            'declined' => __('Abgelehnt', 'campx'),
+            'expired' => __('Abgelaufen', 'campx'),
+        ][$status] ?? $status;
+        $desc    = self::esc( self::build_description([
+            __('Status', 'campx') => $status_label,
+            __('Name', 'campx') => $name,
+            __('E-Mail', 'campx') => $email,
+            __('Telefon', 'campx') => $phone,
+            __('Ressource', 'campx') => $res,
+            __('Anreise', 'campx') => $start,
+            __('Abreise', 'campx') => $end,
+            __('Einheiten', 'campx') => $units,
+            __('Personen', 'campx') => $persons,
+            __('Notizen', 'campx') => $notes,
+        ]) );
         $loc     = self::esc( get_bloginfo('name').' – '.home_url('/') );
-        return "BEGIN:VEVENT\r\nUID:$uid\r\nDTSTAMP:$dtstamp\r\nDTSTART;VALUE=DATE:$dtstart\r\nDTEND;VALUE=DATE:$dtend\r\nSUMMARY:$summary\r\nDESCRIPTION:$desc\r\nLOCATION:$loc\r\nEND:VEVENT";
+        $url     = self::esc( admin_url('post.php?post=' . $booking_id . '&action=edit') );
+        $event_status = ($status === 'accepted') ? 'CONFIRMED' : 'TENTATIVE';
+        return "BEGIN:VEVENT\r\nUID:$uid\r\nDTSTAMP:$dtstamp\r\nLAST-MODIFIED:$dtstamp\r\nDTSTART;VALUE=DATE:$dtstart\r\nDTEND;VALUE=DATE:$dtend\r\nSUMMARY:$summary\r\nDESCRIPTION:$desc\r\nLOCATION:$loc\r\nURL:$url\r\nSTATUS:$event_status\r\nEND:VEVENT";
     }
 
-    protected static function wrap($vevents){
+    protected static function wrap($vevents, $calendar_name=''){
         $prodid='-//CampX Booking//EN';
-        return "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:$prodid\r\nCALSCALE:GREGORIAN\r\nMETHOD:PUBLISH\r\n$vevents\r\nEND:VCALENDAR";
+        $timezone = wp_timezone_string();
+        $calname = $calendar_name ? self::esc($calendar_name) : self::esc(get_bloginfo('name'));
+        $lines = [
+            'BEGIN:VCALENDAR',
+            'VERSION:2.0',
+            "PRODID:$prodid",
+            'CALSCALE:GREGORIAN',
+            'METHOD:PUBLISH',
+            "X-WR-CALNAME:$calname",
+            'X-WR-CALDESC:' . $calname,
+            'X-PUBLISHED-TTL:PT1H',
+        ];
+        if ( $timezone ) {
+            $lines[] = 'X-WR-TIMEZONE:' . self::esc($timezone);
+        }
+        $prefix = implode("\r\n", $lines);
+        return $prefix . "\r\n" . $vevents . "\r\nEND:VCALENDAR";
+    }
+
+    protected static function status_meta_query(){
+        return [
+            'relation' => 'OR',
+            ['key'=>'_campx_status','value'=>'accepted','compare'=>'='],
+            ['key'=>'_campx_status','value'=>'requested','compare'=>'='],
+        ];
+    }
+
+    protected static function build_description(array $fields){
+        $lines = [];
+        foreach ( $fields as $label => $value ) {
+            $value = trim((string) $value);
+            if ( $value === '' ) {
+                continue;
+            }
+            $lines[] = $label . ': ' . $value;
+        }
+        return implode("\n", $lines);
     }
 
     protected static function status_meta_query(){
