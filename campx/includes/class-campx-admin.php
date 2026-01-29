@@ -17,6 +17,8 @@ class Admin {
         add_action('save_post_campx_booking', [__CLASS__, 'save_booking_meta']);
         add_action('save_post_campx_booking', [__CLASS__, 'ensure_occupancy_for_booking'], 12);
         add_action('before_delete_post', [__CLASS__, 'handle_booking_delete']);
+        add_action('trashed_post', [__CLASS__, 'handle_booking_delete']);
+        add_action('untrashed_post', [__CLASS__, 'handle_booking_restore']);
         add_filter('manage_campx_booking_posts_columns', [__CLASS__, 'bookings_columns']);
         add_action('manage_campx_booking_posts_custom_column', [__CLASS__, 'bookings_columns_content'], 10, 2);
         add_action('transition_post_status', [__CLASS__, 'maybe_notify_on_status_change'], 10, 3);
@@ -293,9 +295,20 @@ class Admin {
 
         $days = [];
         $booking_ids = [];
+        $skipped_booking_ids = [];
         foreach ($rows as $row) {
+            $booking_id = (int) $row['booking_id'];
+            if ( isset($skipped_booking_ids[$booking_id]) ) {
+                continue;
+            }
+            $status = get_post_status($booking_id);
+            if ( ! $status || $status === 'trash' ) {
+                $skipped_booking_ids[$booking_id] = true;
+                \CampX\DB::free_occupancy($booking_id);
+                continue;
+            }
             $days[$row['date']][] = $row;
-            $booking_ids[] = (int) $row['booking_id'];
+            $booking_ids[] = $booking_id;
         }
         $booking_ids = array_values(array_unique($booking_ids));
         $booking_meta = [];
@@ -476,6 +489,13 @@ class Admin {
             return;
         }
         \CampX\DB::free_occupancy($post_id);
+    }
+
+    public static function handle_booking_restore($post_id){
+        if ( get_post_type($post_id) !== 'campx_booking' ) {
+            return;
+        }
+        self::ensure_occupancy_for_booking($post_id);
     }
 
     public static function expire_requests(){
