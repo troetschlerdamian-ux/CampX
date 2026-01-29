@@ -158,6 +158,8 @@ class ICS {
         $prodid='-//CampX Booking//EN';
         $timezone = wp_timezone_string();
         $calname = $calendar_name ? self::esc($calendar_name) : self::esc(get_bloginfo('name'));
+        $refresh_minutes = self::get_refresh_interval_minutes();
+        $refresh_duration = sprintf('PT%dM', $refresh_minutes);
         $lines = [
             'BEGIN:VCALENDAR',
             'VERSION:2.0',
@@ -166,8 +168,8 @@ class ICS {
             'METHOD:PUBLISH',
             "X-WR-CALNAME:$calname",
             'X-WR-CALDESC:' . $calname,
-            'X-PUBLISHED-TTL:PT15M',
-            'REFRESH-INTERVAL;VALUE=DURATION:PT15M',
+            'X-PUBLISHED-TTL:' . $refresh_duration,
+            'REFRESH-INTERVAL;VALUE=DURATION:' . $refresh_duration,
         ];
         if ( $timezone ) {
             $lines[] = 'X-WR-TIMEZONE:' . self::esc($timezone);
@@ -235,5 +237,14 @@ class ICS {
         $s = str_replace(",", "\\,", $s);
         $s = str_replace(";", "\\;", $s);
         return $s;
+    }
+
+    protected static function get_refresh_interval_minutes(){
+        $settings = \CampX\Plugin::get_settings();
+        $minutes = isset($settings['ics_refresh_minutes']) ? (int) $settings['ics_refresh_minutes'] : 60;
+        if ( $minutes <= 0 ) {
+            $minutes = 60;
+        }
+        return $minutes;
     }
 }

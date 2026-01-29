@@ -47,6 +47,11 @@ class Plugin {
             'wipe_on_uninstall' => 0,
             'ics_token' => '',
             'currency' => 'CHF',
+            'ics_refresh_minutes' => 60,
+            'pdf_brand_name' => '',
+            'pdf_primary' => '#5b7fff',
+            'pdf_accent' => '#00c2a8',
+            'pdf_notice' => '#e74c3c',
         ];
         $opt = get_option('campx_settings', []);
         if ( ! is_array($opt) ) { $opt = []; }
