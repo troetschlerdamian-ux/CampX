@@ -11,6 +11,14 @@ class Plugin {
         add_action( 'init', [ '\CampX\Ajax', 'init' ] );
         add_action( 'rest_api_init', [ '\CampX\Rest', 'register_routes' ] );
         add_action( 'init', [ '\CampX\ICS', 'listen' ] );
+        add_filter( 'query_vars', [ __CLASS__, 'register_query_vars' ] );
+    }
+
+    public static function register_query_vars( $vars ) {
+        $vars[] = 'campx_ics';
+        $vars[] = 'id';
+        $vars[] = 'token';
+        return $vars;
     }
 
     public static function get_settings(){
@@ -25,6 +33,7 @@ class Plugin {
             'calendar_months' => 2,
             'thankyou_page_id' => 0,
             'wipe_on_uninstall' => 0,
+            'ics_token' => '',
         ];
         $opt = get_option('campx_settings', []);
         if ( ! is_array($opt) ) { $opt = []; }
