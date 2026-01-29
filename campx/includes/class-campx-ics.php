@@ -29,10 +29,15 @@ class ICS {
             'post_status'=>'any',
             'meta_query'=>[
                 ['key'=>'_campx_resource_id','value'=>$resource_id,'compare'=>'='],
-                ['key'=>'_campx_status','value'=>'accepted','compare'=>'=']
+                self::status_meta_query(),
             ]
         ]);
-        foreach($q->posts as $p){ $events[] = self::booking_to_vevent($p->ID); }
+        foreach($q->posts as $p){
+            $event = self::booking_to_vevent($p->ID);
+            if ( $event ) {
+                $events[] = $event;
+            }
+        }
         self::headers('campx-resource-'.$resource_id.'.ics');
         echo self::wrap( implode("\r\n", $events) );
         exit;
@@ -63,6 +68,9 @@ class ICS {
     protected static function booking_to_vevent($booking_id){
         $start = get_post_meta($booking_id,'_campx_start_date',true);
         $end   = get_post_meta($booking_id,'_campx_end_date',true);
+        if ( ! $start || ! $end ) {
+            return '';
+        }
         $name  = get_post_meta($booking_id,'_campx_customer_name',true);
         $res_id= (int) get_post_meta($booking_id,'_campx_resource_id',true);
         $res   = get_the_title($res_id);
