@@ -52,6 +52,13 @@ class Plugin {
             'pdf_primary' => '#5b7fff',
             'pdf_accent' => '#00c2a8',
             'pdf_notice' => '#e74c3c',
+            'pdf_header_text' => '',
+            'pdf_footer_text' => '',
+            'pdf_logo_id' => 0,
+            'pdf_body_html' => '',
+            'pdf_template_html' => '',
+            'pdf_logo_max_width' => 200,
+            'pdf_logo_align' => 'left',
         ];
         $opt = get_option('campx_settings', []);
         if ( ! is_array($opt) ) { $opt = []; }
