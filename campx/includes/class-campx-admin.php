@@ -306,6 +306,65 @@ class Admin {
             ARRAY_A
         );
 
+        $needs_resync = true;
+        $booking_query = new \WP_Query([
+            'post_type' => 'campx_booking',
+            'posts_per_page' => -1,
+            'post_status' => ['publish', 'private', 'pending', 'draft', 'future'],
+            'meta_query' => [
+                'relation' => 'AND',
+                [
+                    'key' => '_campx_start_date',
+                    'value' => $end->format('Y-m-d'),
+                    'compare' => '<',
+                    'type' => 'DATE',
+                ],
+                [
+                    'key' => '_campx_end_date',
+                    'value' => $start->format('Y-m-d'),
+                    'compare' => '>',
+                    'type' => 'DATE',
+                ],
+                [
+                    'relation' => 'OR',
+                    ['key' => '_campx_status', 'value' => 'accepted', 'compare' => '='],
+                    ['key' => '_campx_status', 'value' => 'requested', 'compare' => '='],
+                ],
+            ],
+            'fields' => 'ids',
+        ]);
+        if ( $booking_query->posts ) {
+            foreach ( $booking_query->posts as $bid ) {
+                $existing = (int) $wpdb->get_var(
+                    $wpdb->prepare(
+                        "SELECT COUNT(*) FROM $occ WHERE booking_id=%d AND date >= %s AND date < %s",
+                        $bid,
+                        $start->format('Y-m-d'),
+                        $end->format('Y-m-d')
+                    )
+                );
+                if ( $existing === 0 ) {
+                    self::ensure_occupancy_for_booking($bid);
+                }
+            }
+            $needs_resync = false;
+        }
+
+        if ( ! $needs_resync ) {
+            $rows = $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT date, booking_id, resource_id, units, status
+                     FROM $occ
+                     WHERE date >= %s AND date < %s
+                       AND status IN ('requested','accepted')
+                     ORDER BY date ASC",
+                    $start->format('Y-m-d'),
+                    $end->format('Y-m-d')
+                ),
+                ARRAY_A
+            );
+        }
+
         $days = [];
         $booking_ids = [];
         $skipped_booking_ids = [];
@@ -504,10 +563,10 @@ class Admin {
     }
 
     public static function ensure_occupancy_for_booking($booking_id){
-        static $__running = false; if ($__running) return; $__running = true;
-
-        if ( defined('CAMPX_ENSURE_OCCUPANCY') ) return;
-        define('CAMPX_ENSURE_OCCUPANCY', true);
+        static $running = [];
+        $booking_id = (int) $booking_id;
+        if ( isset($running[$booking_id]) ) return;
+        $running[$booking_id] = true;
 
         $res_id = (int) get_post_meta($booking_id,'_campx_resource_id',true);
         $start  = get_post_meta($booking_id,'_campx_start_date',true);
@@ -515,11 +574,16 @@ class Admin {
         $units  = max(1,(int) get_post_meta($booking_id,'_campx_units',true));
         $status = get_post_meta($booking_id,'_campx_status',true);
         \CampX\DB::free_occupancy($booking_id);
-        if ( ! $res_id || ! $start || ! $end ) return;
+        if ( ! $res_id || ! $start || ! $end ) {
+            unset($running[$booking_id]);
+            return;
+        }
         if ( in_array($status,['declined','expired'], true) ){
+            unset($running[$booking_id]);
             return;
         }
         \CampX\DB::reserve_occupancy($res_id, $booking_id, $start, $end, $units, $status ?: 'requested');
+        unset($running[$booking_id]);
     }
 
     public static function maybe_sync_booking_occupancy($meta_id, $post_id, $meta_key, $_meta_value){
