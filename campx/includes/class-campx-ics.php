@@ -165,8 +165,8 @@ class ICS {
             'METHOD:PUBLISH',
             "X-WR-CALNAME:$calname",
             'X-WR-CALDESC:' . $calname,
-            'X-PUBLISHED-TTL:PT1H',
-            'REFRESH-INTERVAL;VALUE=DURATION:PT1H',
+            'X-PUBLISHED-TTL:PT15M',
+            'REFRESH-INTERVAL;VALUE=DURATION:PT15M',
         ];
         if ( $timezone ) {
             $lines[] = 'X-WR-TIMEZONE:' . self::esc($timezone);
