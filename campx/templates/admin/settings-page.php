@@ -9,6 +9,7 @@
       <tr><th scope="row"><?php _e('Danger','campx');?></th><td><input type="color" name="campx_settings[danger]" value="<?php echo esc_attr($s['danger']);?>"></td></tr>
       <tr><th scope="row"><?php _e('Hintergrund','campx');?></th><td><input type="color" name="campx_settings[bg]" value="<?php echo esc_attr($s['bg']);?>"></td></tr>
       <tr><th scope="row"><?php _e('Admin-E-Mail','campx');?></th><td><input type="email" name="campx_settings[admin_email]" value="<?php echo esc_attr($s['admin_email']);?>" style="min-width:280px"></td></tr>
+      <tr><th scope="row"><?php _e('Währung','campx');?></th><td><input type="text" name="campx_settings[currency]" value="<?php echo esc_attr($s['currency']);?>" style="width:120px"></td></tr>
       <tr><th scope="row"><?php _e('Anfragen verfallen nach (Stunden)','campx');?></th><td><input type="number" min="1" name="campx_settings[request_expires_hours]" value="<?php echo esc_attr($s['request_expires_hours']);?>" style="width:120px"></td></tr>
       <tr><th scope="row"><?php _e('Kalender – Anzahl Monate','campx');?></th><td><select name="campx_settings[calendar_months]"><?php foreach([1,2,3] as $m){ echo '<option value="'.$m.'"'.selected(($s['calendar_months']??2),$m,false).'>'.$m.'</option>'; } ?></select></td></tr>
       <tr><th scope="row"><?php _e('Danke-Seite','campx');?></th><td><?php wp_dropdown_pages(['name'=>'campx_settings[thankyou_page_id]','show_option_none'=>__('— keine —','campx'),'option_none_value'=>'0','selected'=>intval($s['thankyou_page_id']??0)]); ?></td></tr>
@@ -32,7 +33,7 @@
 
   <hr/>
   <h2><?php _e('E-Mail-Vorlagen','campx');?></h2>
-  <p class="description"><?php _e('Platzhalter: {{name}}, {{resource}}, {{start}}, {{end}}, {{ics_link}}, {{site_name}}, {{site_url}}','campx');?></p>
+  <p class="description"><?php _e('Platzhalter: {{name}}, {{resource}}, {{start}}, {{end}}, {{ics_link}}, {{self_service_link}}, {{site_name}}, {{site_url}}','campx');?></p>
   <form method="post" action="options.php">
     <?php
     settings_fields('campx_templates_group');

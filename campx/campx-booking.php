@@ -27,6 +27,8 @@ require_once CAMPX_PATH . 'includes/class-campx-ajax.php';
 require_once CAMPX_PATH . 'includes/class-campx-availability.php';
 require_once CAMPX_PATH . 'includes/class-campx-rest.php';
 require_once CAMPX_PATH . 'includes/class-campx-ics.php';
+require_once CAMPX_PATH . 'includes/class-campx-actions.php';
+require_once CAMPX_PATH . 'includes/class-campx-pdf.php';
 require_once CAMPX_PATH . 'includes/class-campx-frontend.php';
 
 add_action( 'plugins_loaded', function(){

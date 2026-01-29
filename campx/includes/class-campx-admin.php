@@ -102,6 +102,7 @@ class Admin {
             'min_stay'      => (int) get_post_meta($post->ID, '_campx_min_stay', true),
             'max_per_booking'=> (int) get_post_meta($post->ID, '_campx_max_per_booking', true),
             'max_persons'   => (int) get_post_meta($post->ID, '_campx_max_persons', true),
+            'price_per_night' => (float) get_post_meta($post->ID, '_campx_price_per_night', true),
         ];
         wp_nonce_field('campx_resource_save','campx_resource_nonce');
         ?>
@@ -136,6 +137,10 @@ class Admin {
               <label><?php _e('Max. Personen pro Buchung','campx');?></label>
               <input type="number" name="campx_max_persons" value="<?php echo esc_attr($meta['max_persons']);?>" min="0" />
             </div>
+            <div>
+              <label><?php _e('Preis pro Einheit/Nacht','campx');?></label>
+              <input type="number" step="0.01" name="campx_price_per_night" value="<?php echo esc_attr($meta['price_per_night']);?>" min="0" />
+            </div>
           </div>
         </div>
         <?php
@@ -149,6 +154,7 @@ class Admin {
         update_post_meta($post_id, '_campx_min_stay', max(1, intval($_POST['campx_min_stay'] ?? 1)));
         update_post_meta($post_id, '_campx_max_per_booking', max(1, intval($_POST['campx_max_per_booking'] ?? 1)));
         update_post_meta($post_id, '_campx_max_persons', max(0, intval($_POST['campx_max_persons'] ?? 0)));
+        update_post_meta($post_id, '_campx_price_per_night', max(0, floatval($_POST['campx_price_per_night'] ?? 0)));
     }
 
     public static function booking_meta_box($post){
@@ -233,6 +239,7 @@ class Admin {
 
         $__running = true;
         define('CAMPX_SAVING_BOOKING', true);
+        \CampX\Actions::ensure_tokens($post_id);
         $fields = [
             '_campx_resource_id' => intval($_POST['campx_resource_id'] ?? 0),
             '_campx_start_date'  => sanitize_text_field($_POST['campx_start_date'] ?? ''),
@@ -272,8 +279,8 @@ class Admin {
         $s = Plugin::get_settings();
         $tpl = get_option('campx_email_templates', []);
         $tpl_requested = $tpl['requested'] ?? '<p>Hallo {{name}},</p><p>Wir haben deine Buchungsanfrage für <strong>{{resource}}</strong> vom <strong>{{start}}</strong> bis <strong>{{end}}</strong> erhalten und prüfen diese.</p><p>Liebe Grüsse<br>{{site_name}}</p>';
-        $tpl_accepted  = $tpl['accepted']  ?? '<p>Hallo {{name}},</p><p>Deine Buchung für <strong>{{resource}}</strong> vom <strong>{{start}}</strong> bis <strong>{{end}}</strong> ist bestätigt.</p><p><a href="{{ics_link}}">Termin als ICS herunterladen</a></p><p>Liebe Grüsse<br>{{site_name}}</p>';
-        $tpl_declined  = $tpl['declined']  ?? '<p>Hallo {{name}},</p><p>Leider konnten wir deine Buchung für <strong>{{resource}}</strong> nicht bestätigen.</p><p>Liebe Grüsse<br>{{site_name}}</p>';
+        $tpl_accepted  = $tpl['accepted']  ?? '<p>Hallo {{name}},</p><p>Deine Buchung für <strong>{{resource}}</strong> vom <strong>{{start}}</strong> bis <strong>{{end}}</strong> ist bestätigt.</p><p><a href="{{ics_link}}">Termin als ICS herunterladen</a></p><p>Optional kannst du deine Buchung hier verwalten: <a href="{{self_service_link}}">Buchung verwalten</a></p><p>Liebe Grüsse<br>{{site_name}}</p>';
+        $tpl_declined  = $tpl['declined']  ?? '<p>Hallo {{name}},</p><p>Leider konnten wir deine Buchung für <strong>{{resource}}</strong> nicht bestätigen (Kapazität/Verfügbarkeit).</p><p>Bitte melde dich telefonisch oder per E-Mail, damit wir eine Alternative finden.</p><p>Liebe Grüsse<br>{{site_name}}</p>';
         require CAMPX_PATH . 'templates/admin/settings-page.php';
     }
 
@@ -542,24 +549,51 @@ class Admin {
         $end   = get_post_meta($booking_id,'_campx_end_date',true);
         $admin_email = Plugin::get_settings()['admin_email'] ?? get_option('admin_email');
         $settings = Plugin::get_settings();
+        \CampX\Actions::ensure_tokens($booking_id);
         $ics_args = ['campx_ics'=>'booking','id'=>$booking_id];
         if ( ! empty($settings['ics_token']) ) {
             $ics_args['token'] = $settings['ics_token'];
         }
         $ics_link = add_query_arg($ics_args, home_url('/'));
+        $self_service_link = \CampX\Actions::get_action_url($booking_id, 'customer_edit', \CampX\Actions::get_customer_token($booking_id));
 
         $subject = sprintf(__('Buchung %s – %s','campx'), $status, $res);
         $headers = ['Content-Type: text/html; charset=UTF-8','From: '.get_bloginfo('name').' <'.$admin_email.'>'];
 
         $site = get_bloginfo('name'); $site_url = home_url('/');
         $tpl = get_option('campx_email_templates', []);
-        $vars = ['name'=>esc_html($name),'resource'=>esc_html($res),'start'=>esc_html($start),'end'=>esc_html($end),'ics_link'=>esc_url($ics_link),'site_name'=>esc_html($site),'site_url'=>esc_url($site_url)];
+        $vars = [
+            'name'=>esc_html($name),
+            'resource'=>esc_html($res),
+            'start'=>esc_html($start),
+            'end'=>esc_html($end),
+            'ics_link'=>esc_url($ics_link),
+            'self_service_link'=>esc_url($self_service_link),
+            'site_name'=>esc_html($site),
+            'site_url'=>esc_url($site_url),
+        ];
         $body = ($status==='requested')?($tpl['requested']??''):($status==='accepted'?($tpl['accepted']??''):($tpl['declined']??''));
         if ( ! $body ){ $body = '<p>'.sprintf(__('Hallo %s,','campx'), esc_html($name)).'</p>'; }
-        $msg = self::render_template($body, $vars);
+        $msg_customer = self::render_template($body, $vars);
+        $msg_admin = $msg_customer;
 
-        if ($email) wp_mail($email, $subject, $msg, $headers);
-        wp_mail($admin_email, '[CampX] '.$subject, $msg, $headers);
+        if ( $status === 'requested' ) {
+            $owner_links = \CampX\Actions::build_owner_action_links($booking_id);
+            $msg_admin .= '<hr/>' . $owner_links;
+        }
+
+        $attachments = [];
+        if ( $status === 'accepted' ) {
+            $pdf_path = \CampX\PDF::generate_booking_pdf($booking_id, false);
+            if ( $pdf_path ) {
+                $attachments[] = $pdf_path;
+            }
+        }
+
+        if ($email) {
+            wp_mail($email, $subject, $msg_customer, $headers, $attachments);
+        }
+        wp_mail($admin_email, '[CampX] '.$subject, $msg_admin, $headers, $attachments);
     }
 
     public static function ensure_occupancy_for_booking($booking_id){

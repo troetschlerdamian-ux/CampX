@@ -10,6 +10,7 @@ class Plugin {
         add_action( 'init', [ '\CampX\Admin', 'init' ] );
         add_action( 'init', [ '\CampX\Frontend', 'init' ] );
         add_action( 'init', [ '\CampX\Ajax', 'init' ] );
+        add_action( 'init', [ '\CampX\Actions', 'listen' ] );
         add_action( 'rest_api_init', [ '\CampX\Rest', 'register_routes' ] );
         add_action( 'init', [ '\CampX\ICS', 'listen' ] );
         add_filter( 'query_vars', [ __CLASS__, 'register_query_vars' ] );
@@ -19,6 +20,9 @@ class Plugin {
         $vars[] = 'campx_ics';
         $vars[] = 'id';
         $vars[] = 'token';
+        $vars[] = 'campx_action';
+        $vars[] = 'booking';
+        $vars[] = 'action_token';
         return $vars;
     }
 
@@ -42,6 +46,7 @@ class Plugin {
             'thankyou_page_id' => 0,
             'wipe_on_uninstall' => 0,
             'ics_token' => '',
+            'currency' => 'CHF',
         ];
         $opt = get_option('campx_settings', []);
         if ( ! is_array($opt) ) { $opt = []; }
