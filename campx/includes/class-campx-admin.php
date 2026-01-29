@@ -307,55 +307,6 @@ class Admin {
         }
 
         $month_label = function_exists('wp_date') ? wp_date('F Y', $start->getTimestamp()) : $start->format('F Y');
-        require CAMPX_PATH . 'templates/admin/calendar-page.php';
-    }
-
-    public static function calendar_page(){
-        $raw_month = isset($_GET['campx_month']) ? sanitize_text_field($_GET['campx_month']) : '';
-        $month = preg_match('/^\d{4}-\d{2}$/', $raw_month) ? $raw_month : gmdate('Y-m');
-        try {
-            $start = new \DateTime($month . '-01');
-        } catch (\Exception $e) {
-            $start = new \DateTime(gmdate('Y-m-01'));
-        }
-        $end = clone $start;
-        $end->modify('+1 month');
-
-        $prev = (clone $start)->modify('-1 month')->format('Y-m');
-        $next = (clone $start)->modify('+1 month')->format('Y-m');
-
-        global $wpdb;
-        $occ = $wpdb->prefix . 'campx_occupancy';
-        $rows = $wpdb->get_results(
-            $wpdb->prepare(
-                "SELECT date, booking_id, resource_id, units, status
-                 FROM $occ
-                 WHERE date >= %s AND date < %s
-                   AND status IN ('requested','accepted')
-                 ORDER BY date ASC",
-                $start->format('Y-m-d'),
-                $end->format('Y-m-d')
-            ),
-            ARRAY_A
-        );
-
-        $days = [];
-        $booking_ids = [];
-        foreach ($rows as $row) {
-            $days[$row['date']][] = $row;
-            $booking_ids[] = (int) $row['booking_id'];
-        }
-        $booking_ids = array_values(array_unique($booking_ids));
-        $booking_meta = [];
-        foreach ($booking_ids as $bid) {
-            $booking_meta[$bid] = [
-                'name' => get_post_meta($bid, '_campx_customer_name', true),
-                'start' => get_post_meta($bid, '_campx_start_date', true),
-                'end' => get_post_meta($bid, '_campx_end_date', true),
-            ];
-        }
-
-        $month_label = function_exists('wp_date') ? wp_date('F Y', $start->getTimestamp()) : $start->format('F Y');
         ?>
         <div class="wrap campx-calendar-admin">
           <h1><?php _e('Kalender', 'campx'); ?></h1>
