@@ -4,11 +4,17 @@ if ( ! defined( 'ABSPATH' ) ) exit;
 
 class ICS {
     public static function listen(){
-        if ( isset($_GET['campx_ics']) ){
+        $type = get_query_var('campx_ics');
+        if ( empty($type) && isset($_GET['campx_ics']) ) {
             $type = sanitize_text_field($_GET['campx_ics']);
-            $id = absint($_GET['id'] ?? 0);
+        }
+        if ( ! empty($type) ){
+            $type = sanitize_text_field($type);
+            $id = absint(get_query_var('id') ?: ($_GET['id'] ?? 0));
+            self::assert_token();
             if ( $type==='resource' && $id ) self::output_resource_ics($id);
             if ( $type==='booking'  && $id ) self::output_booking_ics($id);
+            if ( $type==='all' ) self::output_all_ics();
         }
     }
 
@@ -26,10 +32,15 @@ class ICS {
             'post_status'=>'any',
             'meta_query'=>[
                 ['key'=>'_campx_resource_id','value'=>$resource_id,'compare'=>'='],
-                ['key'=>'_campx_status','value'=>'accepted','compare'=>'=']
+                self::status_meta_query(),
             ]
         ]);
-        foreach($q->posts as $p){ $events[] = self::booking_to_vevent($p->ID); }
+        foreach($q->posts as $p){
+            $event = self::booking_to_vevent($p->ID);
+            if ( $event ) {
+                $events[] = $event;
+            }
+        }
         self::headers('campx-resource-'.$resource_id.'.ics');
         echo self::wrap( implode("\r\n", $events) );
         exit;
@@ -41,9 +52,31 @@ class ICS {
         exit;
     }
 
+    public static function output_all_ics(){
+        $events = [];
+        $q = new \WP_Query([
+            'post_type'=>'campx_booking',
+            'posts_per_page'=>-1,
+            'post_status'=>'any',
+            'meta_query'=>self::status_meta_query(),
+        ]);
+        foreach($q->posts as $p){
+            $event = self::booking_to_vevent($p->ID);
+            if ( $event ) {
+                $events[] = $event;
+            }
+        }
+        self::headers('campx-bookings.ics');
+        echo self::wrap( implode("\r\n", $events) );
+        exit;
+    }
+
     protected static function booking_to_vevent($booking_id){
         $start = get_post_meta($booking_id,'_campx_start_date',true);
         $end   = get_post_meta($booking_id,'_campx_end_date',true);
+        if ( ! $start || ! $end ) {
+            return '';
+        }
         $name  = get_post_meta($booking_id,'_campx_customer_name',true);
         $res_id= (int) get_post_meta($booking_id,'_campx_resource_id',true);
         $res   = get_the_title($res_id);
@@ -60,6 +93,46 @@ class ICS {
     protected static function wrap($vevents){
         $prodid='-//CampX Booking//EN';
         return "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:$prodid\r\nCALSCALE:GREGORIAN\r\nMETHOD:PUBLISH\r\n$vevents\r\nEND:VCALENDAR";
+    }
+
+    protected static function status_meta_query(){
+        return [
+            'relation' => 'OR',
+            [
+                'key' => '_campx_status',
+                'value' => ['accepted', 'requested'],
+                'compare' => 'IN',
+            ],
+            [
+                'key' => '_campx_status',
+                'compare' => 'NOT EXISTS',
+            ],
+        ];
+    }
+
+    protected static function assert_token(){
+        $settings = \CampX\Plugin::get_settings();
+        $token = $settings['ics_token'] ?? '';
+        if ( empty($token) ) {
+            return;
+        }
+        $provided = sanitize_text_field($_GET['token'] ?? '');
+        if ( ! $provided || ! hash_equals($token, $provided) ) {
+            status_header(403);
+            echo 'Forbidden';
+            exit;
+        }
+    }
+
+    public static function disable_canonical_redirects( $redirect_url ) {
+        $type = get_query_var('campx_ics');
+        if ( empty($type) && isset($_GET['campx_ics']) ) {
+            $type = sanitize_text_field($_GET['campx_ics']);
+        }
+        if ( ! empty($type) ) {
+            return false;
+        }
+        return $redirect_url;
     }
     protected static function esc($s){
         $s = (string) $s;

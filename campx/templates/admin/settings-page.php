@@ -13,6 +13,19 @@
       <tr><th scope="row"><?php _e('Kalender – Anzahl Monate','campx');?></th><td><select name="campx_settings[calendar_months]"><?php foreach([1,2,3] as $m){ echo '<option value="'.$m.'"'.selected(($s['calendar_months']??2),$m,false).'>'.$m.'</option>'; } ?></select></td></tr>
       <tr><th scope="row"><?php _e('Danke-Seite','campx');?></th><td><?php wp_dropdown_pages(['name'=>'campx_settings[thankyou_page_id]','show_option_none'=>__('— keine —','campx'),'option_none_value'=>'0','selected'=>intval($s['thankyou_page_id']??0)]); ?></td></tr>
       <tr><th scope="row"><?php _e('Beim Löschen alle Daten entfernen','campx');?></th><td><label><input type="checkbox" name="campx_settings[wipe_on_uninstall]" value="1" <?php checked(!empty($s['wipe_on_uninstall']));?>> <?php _e('Achtung: löscht Tabellen, Ressourcen & Buchungen beim Plugin-Löschen.','campx');?></label></td></tr>
+      <tr>
+        <th scope="row"><?php _e('ICS-Token','campx');?></th>
+        <td>
+          <input type="text" name="campx_settings[ics_token]" value="<?php echo esc_attr($s['ics_token']);?>" style="min-width:280px">
+          <?php
+          $token_link = wp_nonce_url(add_query_arg('campx_generate_token', '1'), 'campx_generate_token');
+          ?>
+          <p class="description">
+            <?php _e('Wenn gesetzt, muss der Token in der ICS-URL enthalten sein.','campx');?>
+            <a href="<?php echo esc_url($token_link);?>"><?php _e('Neuen Token erzeugen','campx');?></a>
+          </p>
+        </td>
+      </tr>
     </table>
     <?php submit_button(); ?>
   </form>
@@ -32,5 +45,39 @@
     ?>
   </form>
 
-  <p><strong>ICS:</strong> <?php _e('Ressourcen-Kalender','campx');?> <code><?php echo esc_html( home_url('?campx_ics=resource&id=RESOURCE_ID') ); ?></code></p>
+  <?php
+  $token = $s['ics_token'] ?? '';
+  $resource_args = ['campx_ics' => 'resource', 'id' => 'RESOURCE_ID'];
+  $all_args = ['campx_ics' => 'all'];
+  if ( ! empty($token) ) {
+      $resource_args['token'] = $token;
+      $all_args['token'] = $token;
+  }
+  $resources = get_posts([
+      'post_type' => 'campx_resource',
+      'numberposts' => -1,
+  ]);
+  ?>
+  <p><strong>ICS:</strong> <?php _e('Ressourcen-Kalender','campx');?> <code><?php echo esc_html( add_query_arg($resource_args, home_url('/')) ); ?></code></p>
+  <p><strong>ICS:</strong> <?php _e('Alle Buchungen','campx');?> <code><?php echo esc_html( add_query_arg($all_args, home_url('/')) ); ?></code></p>
+  <?php if ( ! empty($resources) ) : ?>
+    <p><strong><?php _e('Ressourcen-Feeds','campx'); ?>:</strong></p>
+    <ul>
+      <?php foreach ( $resources as $resource ) : ?>
+        <?php
+        $resource_link_args = [
+            'campx_ics' => 'resource',
+            'id' => $resource->ID,
+        ];
+        if ( ! empty($token) ) {
+            $resource_link_args['token'] = $token;
+        }
+        ?>
+        <li>
+          <?php echo esc_html($resource->post_title); ?>
+          <code><?php echo esc_html( add_query_arg($resource_link_args, home_url('/')) ); ?></code>
+        </li>
+      <?php endforeach; ?>
+    </ul>
+  <?php endif; ?>
 </div>
