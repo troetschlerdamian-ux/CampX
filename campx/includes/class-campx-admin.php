@@ -499,6 +499,9 @@ class Admin {
         if ( get_post_type($post_id) !== 'campx_booking' ) {
             return;
         }
+        if ( defined('CAMPX_SAVING_BOOKING') ) {
+            return;
+        }
         $keys = [
             '_campx_resource_id',
             '_campx_start_date',
