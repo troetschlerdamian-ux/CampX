@@ -9,6 +9,12 @@ class ICS {
             $type = sanitize_text_field($_GET['campx_ics']);
         }
         if ( empty($type) ) {
+            $request_path = isset($_SERVER['REQUEST_URI']) ? wp_parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) : '';
+            if ( $request_path && preg_match('#/campx\.ics/?$#', $request_path) ) {
+                $type = 'all';
+            }
+        }
+        if ( empty($type) ) {
             return;
         }
         $raw_id = get_query_var('id');
@@ -59,14 +65,14 @@ class ICS {
         }
         self::headers('campx-resource-'.$resource_id.'.ics');
         $calendar_name = sprintf('%s – %s', get_bloginfo('name'), get_the_title($resource_id));
-        echo self::wrap( implode("\r\n", $events), $calendar_name );
+        echo self::fold_lines( self::wrap( implode("\r\n", $events), $calendar_name ) );
         exit;
     }
 
     public static function output_booking_ics($booking_id){
         self::headers('campx-booking-'.$booking_id.'.ics');
         $calendar_name = sprintf('%s – %s', get_bloginfo('name'), __('Buchung', 'campx'));
-        echo self::wrap( self::booking_to_vevent($booking_id), $calendar_name );
+        echo self::fold_lines( self::wrap( self::booking_to_vevent($booking_id), $calendar_name ) );
         exit;
     }
 
@@ -84,7 +90,7 @@ class ICS {
         }
         self::headers('campx-bookings.ics');
         $calendar_name = sprintf('%s – %s', get_bloginfo('name'), __('Buchungen', 'campx'));
-        echo self::wrap( implode("\r\n", $events), $calendar_name );
+        echo self::fold_lines( self::wrap( implode("\r\n", $events), $calendar_name ) );
         exit;
     }
 
@@ -155,6 +161,20 @@ class ICS {
         }
         $prefix = implode("\r\n", $lines);
         return $prefix . "\r\n" . $vevents . "\r\nEND:VCALENDAR";
+    }
+
+    protected static function fold_lines($content){
+        $lines = explode("\r\n", $content);
+        $folded = [];
+        foreach ( $lines as $line ) {
+            $line = (string) $line;
+            while ( strlen($line) > 75 ) {
+                $folded[] = substr($line, 0, 75);
+                $line = ' ' . substr($line, 75);
+            }
+            $folded[] = $line;
+        }
+        return implode("\r\n", $folded);
     }
 
     protected static function status_meta_query(){
