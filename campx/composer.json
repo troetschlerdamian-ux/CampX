@@ -1,0 +1,8 @@
+{
+  "name": "campx/booking",
+  "description": "CampX Booking plugin dependencies",
+  "type": "project",
+  "require": {
+    "dompdf/dompdf": "^2.0"
+  }
+}

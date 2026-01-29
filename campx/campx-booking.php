@@ -19,6 +19,10 @@ define( 'CAMPX_VERSION', '1.4.2' );
 define( 'CAMPX_PATH', plugin_dir_path( __FILE__ ) );
 define( 'CAMPX_URL', plugin_dir_url( __FILE__ ) );
 
+if ( file_exists( CAMPX_PATH . 'vendor/autoload.php' ) ) {
+    require_once CAMPX_PATH . 'vendor/autoload.php';
+}
+
 require_once CAMPX_PATH . 'includes/class-campx-plugin.php';
 require_once CAMPX_PATH . 'includes/class-campx-db.php';
 require_once CAMPX_PATH . 'includes/class-campx-cpt.php';
