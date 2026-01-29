@@ -13,6 +13,18 @@ class ICS {
             if ( $request_path && preg_match('#/campx\.ics/?$#', $request_path) ) {
                 $type = 'all';
             }
+            if ( empty($type) && $request_path && preg_match('#/campx-([A-Za-z0-9_-]+)\.ics/?$#', $request_path, $matches) ) {
+                $type = 'all';
+                if ( ! empty($matches[1]) ) {
+                    $token = rawurldecode($matches[1]);
+                    $_GET['token'] = $token;
+                    if ( function_exists('set_query_var') ) {
+                        set_query_var('token', $token);
+                    } elseif ( isset($GLOBALS['wp_query']) && is_object($GLOBALS['wp_query']) ) {
+                        $GLOBALS['wp_query']->query_vars['token'] = $token;
+                    }
+                }
+            }
         }
         if ( empty($type) ) {
             return;
@@ -40,6 +52,7 @@ class ICS {
     }
 
     protected static function headers($filename='campx.ics'){
+        status_header(200);
         nocache_headers();
         header('Content-Type: text/calendar; charset=utf-8');
         header('Content-Disposition: inline; filename="'.$filename.'"');
@@ -153,8 +166,8 @@ class ICS {
             'METHOD:PUBLISH',
             "X-WR-CALNAME:$calname",
             'X-WR-CALDESC:' . $calname,
-            'X-PUBLISHED-TTL:PT1H',
-            'REFRESH-INTERVAL;VALUE=DURATION:PT1H',
+            'X-PUBLISHED-TTL:PT15M',
+            'REFRESH-INTERVAL;VALUE=DURATION:PT15M',
         ];
         if ( $timezone ) {
             $lines[] = 'X-WR-TIMEZONE:' . self::esc($timezone);
@@ -203,7 +216,11 @@ class ICS {
         if ( empty($token) ) {
             return;
         }
-        $provided = sanitize_text_field($_GET['token'] ?? '');
+        $provided = get_query_var('token');
+        if ( empty($provided) && isset($_GET['token']) ) {
+            $provided = sanitize_text_field($_GET['token']);
+        }
+        $provided = sanitize_text_field((string) $provided);
         if ( ! $provided || ! hash_equals($token, $provided) ) {
             status_header(403);
             echo 'Forbidden';
