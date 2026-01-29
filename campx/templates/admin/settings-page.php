@@ -53,31 +53,7 @@
       $resource_args['token'] = $token;
       $all_args['token'] = $token;
   }
-  $resources = get_posts([
-      'post_type' => 'campx_resource',
-      'numberposts' => -1,
-  ]);
   ?>
   <p><strong>ICS:</strong> <?php _e('Ressourcen-Kalender','campx');?> <code><?php echo esc_html( add_query_arg($resource_args, home_url('/')) ); ?></code></p>
   <p><strong>ICS:</strong> <?php _e('Alle Buchungen','campx');?> <code><?php echo esc_html( add_query_arg($all_args, home_url('/')) ); ?></code></p>
-  <?php if ( ! empty($resources) ) : ?>
-    <p><strong><?php _e('Ressourcen-Feeds','campx'); ?>:</strong></p>
-    <ul>
-      <?php foreach ( $resources as $resource ) : ?>
-        <?php
-        $resource_link_args = [
-            'campx_ics' => 'resource',
-            'id' => $resource->ID,
-        ];
-        if ( ! empty($token) ) {
-            $resource_link_args['token'] = $token;
-        }
-        ?>
-        <li>
-          <?php echo esc_html($resource->post_title); ?>
-          <code><?php echo esc_html( add_query_arg($resource_link_args, home_url('/')) ); ?></code>
-        </li>
-      <?php endforeach; ?>
-    </ul>
-  <?php endif; ?>
 </div>
