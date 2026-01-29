@@ -226,12 +226,13 @@ class Admin {
     }
 
     public static function save_booking_meta($post_id){
-        static $__running = false; if ($__running) return; $__running = true;
-
+        static $__running = false;
+        if ($__running) return;
         if ( defined('CAMPX_SAVING_BOOKING') ) return;
-        define('CAMPX_SAVING_BOOKING', true);
-
         if ( ! isset($_POST['campx_booking_nonce']) || ! wp_verify_nonce($_POST['campx_booking_nonce'], 'campx_booking_save') ) return;
+
+        $__running = true;
+        define('CAMPX_SAVING_BOOKING', true);
         $fields = [
             '_campx_resource_id' => intval($_POST['campx_resource_id'] ?? 0),
             '_campx_start_date'  => sanitize_text_field($_POST['campx_start_date'] ?? ''),
@@ -246,6 +247,7 @@ class Admin {
         ];
         foreach($fields as $k=>$v) update_post_meta($post_id, $k, $v);
         self::auto_title_booking($post_id);
+        $__running = false;
     }
 
     protected static function auto_title_booking($post_id){
@@ -361,6 +363,7 @@ class Admin {
                     foreach ($days[$date] as $entry) {
                         $bid = (int) $entry['booking_id'];
                         $rid = (int) $entry['resource_id'];
+                        $colors = self::resource_color($rid);
                         $resource_title = $rid ? get_the_title($rid) : __('Unbekannt', 'campx');
                         $meta = $booking_meta[$bid] ?? [];
                         $customer = $meta['name'] ?? '';
@@ -369,7 +372,13 @@ class Admin {
                         $label = trim(sprintf('%s – %s', $resource_title, $customer));
                         $range = ($start_date && $end_date) ? sprintf('%s → %s', $start_date, $end_date) : '';
                         $link = get_edit_post_link($bid);
-                        echo '<a class="campx-cal-entry" href="' . esc_url($link) . '">';
+                        $style = sprintf(
+                            '--campx-entry-bg:%s;--campx-entry-text:%s;--campx-entry-border:%s;',
+                            esc_attr($colors['bg']),
+                            esc_attr($colors['text']),
+                            esc_attr($colors['border'])
+                        );
+                        echo '<a class="campx-cal-entry" style="' . $style . '" href="' . esc_url($link) . '">';
                         echo '<span class="campx-cal-entry-title">' . esc_html($label) . '</span>';
                         if ($range) {
                             echo '<span class="campx-cal-entry-range">' . esc_html($range) . '</span>';
@@ -392,13 +401,31 @@ class Admin {
           .campx-calendar-admin .campx-cal-cell{min-height:120px;border:1px solid #e5e7eb;border-radius:10px;padding:8px;background:#fff;display:flex;flex-direction:column;gap:6px}
           .campx-calendar-admin .campx-cal-cell.is-empty{background:transparent;border:0}
           .campx-calendar-admin .campx-cal-date{font-weight:600;color:#111827}
-          .campx-calendar-admin .campx-cal-entry{display:block;padding:6px 8px;border-radius:8px;background:#eef2ff;color:#1f2937;text-decoration:none}
-          .campx-calendar-admin .campx-cal-entry:hover{background:#e0e7ff}
+          .campx-calendar-admin .campx-cal-entry{display:block;padding:6px 8px;border-radius:8px;background:var(--campx-entry-bg,#eef2ff);color:var(--campx-entry-text,#1f2937);text-decoration:none;border:1px solid var(--campx-entry-border,#e0e7ff)}
+          .campx-calendar-admin .campx-cal-entry:hover{filter:brightness(0.96)}
           .campx-calendar-admin .campx-cal-entry-title{display:block;font-weight:600;font-size:12px}
           .campx-calendar-admin .campx-cal-entry-range{display:block;font-size:11px;color:#6b7280}
           .campx-calendar-admin .campx-cal-empty{font-size:11px;color:#9ca3af}
         </style>
         <?php
+    }
+
+    protected static function resource_color($resource_id){
+        $palette = [
+            ['bg' => '#e0f2fe', 'text' => '#0c4a6e', 'border' => '#7dd3fc'],
+            ['bg' => '#fef3c7', 'text' => '#92400e', 'border' => '#fcd34d'],
+            ['bg' => '#ecfccb', 'text' => '#365314', 'border' => '#bef264'],
+            ['bg' => '#fce7f3', 'text' => '#9d174d', 'border' => '#f9a8d4'],
+            ['bg' => '#ede9fe', 'text' => '#4c1d95', 'border' => '#c4b5fd'],
+            ['bg' => '#fee2e2', 'text' => '#991b1b', 'border' => '#fecaca'],
+            ['bg' => '#cffafe', 'text' => '#0e7490', 'border' => '#67e8f9'],
+            ['bg' => '#dcfce7', 'text' => '#166534', 'border' => '#86efac'],
+        ];
+        if ( empty($resource_id) ) {
+            return $palette[0];
+        }
+        $index = absint($resource_id) % count($palette);
+        return $palette[$index];
     }
 
     public static function bookings_columns($cols){

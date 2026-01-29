@@ -40,6 +40,7 @@ class ICS {
     }
 
     protected static function headers($filename='campx.ics'){
+        status_header(200);
         nocache_headers();
         header('Content-Type: text/calendar; charset=utf-8');
         header('Content-Disposition: inline; filename="'.$filename.'"');
