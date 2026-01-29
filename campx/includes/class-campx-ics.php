@@ -7,10 +7,7 @@ class ICS {
         $type = get_query_var('campx_ics');
         if ( empty($type) && isset($_GET['campx_ics']) ) {
             $type = sanitize_text_field($_GET['campx_ics']);
-        }
-        if ( ! empty($type) ){
-            $type = sanitize_text_field($type);
-            $id = absint(get_query_var('id') ?: ($_GET['id'] ?? 0));
+            $id = absint($_GET['id'] ?? 0);
             self::assert_token();
             if ( $type==='resource' && $id ) self::output_resource_ics($id);
             if ( $type==='booking'  && $id ) self::output_booking_ics($id);
@@ -96,17 +93,6 @@ class ICS {
             echo 'Forbidden';
             exit;
         }
-    }
-
-    public static function disable_canonical_redirects( $redirect_url ) {
-        $type = get_query_var('campx_ics');
-        if ( empty($type) && isset($_GET['campx_ics']) ) {
-            $type = sanitize_text_field($_GET['campx_ics']);
-        }
-        if ( ! empty($type) ) {
-            return false;
-        }
-        return $redirect_url;
     }
     protected static function esc($s){
         $s = (string) $s;

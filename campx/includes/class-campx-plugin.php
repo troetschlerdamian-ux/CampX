@@ -11,8 +11,6 @@ class Plugin {
         add_action( 'init', [ '\CampX\Ajax', 'init' ] );
         add_action( 'rest_api_init', [ '\CampX\Rest', 'register_routes' ] );
         add_action( 'init', [ '\CampX\ICS', 'listen' ] );
-        add_action( 'template_redirect', [ '\CampX\ICS', 'listen' ], 0 );
-        add_filter( 'redirect_canonical', [ '\CampX\ICS', 'disable_canonical_redirects' ] );
         add_filter( 'query_vars', [ __CLASS__, 'register_query_vars' ] );
     }
 
