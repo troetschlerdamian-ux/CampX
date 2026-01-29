@@ -432,7 +432,7 @@ class Admin {
     }
 
     protected static function render_template($html, $vars){
-        foreach($vars as $k=>$v){ $html = str_replace('{{'.$k.'}}', $v, $html; }
+        foreach($vars as $k=>$v){ $html = str_replace('{{'.$k.'}}', $v, $html); }
         return $html;
     }
 
