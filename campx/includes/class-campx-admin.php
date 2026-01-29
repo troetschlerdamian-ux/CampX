@@ -245,61 +245,20 @@ class Admin {
     }
 
     public static function settings_page(){
+        if ( isset($_GET['campx_generate_token']) && current_user_can('manage_options') ) {
+            check_admin_referer('campx_generate_token');
+            $settings = Plugin::get_settings();
+            $settings['ics_token'] = wp_generate_password(32, false, false);
+            update_option('campx_settings', $settings);
+            wp_safe_redirect(remove_query_arg(['campx_generate_token', '_wpnonce']));
+            exit;
+        }
         $s = Plugin::get_settings();
         $tpl = get_option('campx_email_templates', []);
         $tpl_requested = $tpl['requested'] ?? '<p>Hallo {{name}},</p><p>Wir haben deine Buchungsanfrage für <strong>{{resource}}</strong> vom <strong>{{start}}</strong> bis <strong>{{end}}</strong> erhalten und prüfen diese.</p><p>Liebe Grüsse<br>{{site_name}}</p>';
         $tpl_accepted  = $tpl['accepted']  ?? '<p>Hallo {{name}},</p><p>Deine Buchung für <strong>{{resource}}</strong> vom <strong>{{start}}</strong> bis <strong>{{end}}</strong> ist bestätigt.</p><p><a href="{{ics_link}}">Termin als ICS herunterladen</a></p><p>Liebe Grüsse<br>{{site_name}}</p>';
         $tpl_declined  = $tpl['declined']  ?? '<p>Hallo {{name}},</p><p>Leider konnten wir deine Buchung für <strong>{{resource}}</strong> nicht bestätigen.</p><p>Liebe Grüsse<br>{{site_name}}</p>';
         require CAMPX_PATH . 'templates/admin/settings-page.php';
-    }
-
-    public static function calendar_page(){
-        $raw_month = isset($_GET['campx_month']) ? sanitize_text_field($_GET['campx_month']) : '';
-        $month = preg_match('/^\d{4}-\d{2}$/', $raw_month) ? $raw_month : gmdate('Y-m');
-        try {
-            $start = new \DateTime($month . '-01');
-        } catch (\Exception $e) {
-            $start = new \DateTime(gmdate('Y-m-01'));
-        }
-        $end = clone $start;
-        $end->modify('+1 month');
-
-        $prev = (clone $start)->modify('-1 month')->format('Y-m');
-        $next = (clone $start)->modify('+1 month')->format('Y-m');
-
-        global $wpdb;
-        $occ = $wpdb->prefix . 'campx_occupancy';
-        $rows = $wpdb->get_results(
-            $wpdb->prepare(
-                "SELECT date, booking_id, resource_id, units, status
-                 FROM $occ
-                 WHERE date >= %s AND date < %s
-                   AND status IN ('requested','accepted')
-                 ORDER BY date ASC",
-                $start->format('Y-m-d'),
-                $end->format('Y-m-d')
-            ),
-            ARRAY_A
-        );
-
-        $days = [];
-        $booking_ids = [];
-        foreach ($rows as $row) {
-            $days[$row['date']][] = $row;
-            $booking_ids[] = (int) $row['booking_id'];
-        }
-        $booking_ids = array_values(array_unique($booking_ids));
-        $booking_meta = [];
-        foreach ($booking_ids as $bid) {
-            $booking_meta[$bid] = [
-                'name' => get_post_meta($bid, '_campx_customer_name', true),
-                'start' => get_post_meta($bid, '_campx_start_date', true),
-                'end' => get_post_meta($bid, '_campx_end_date', true),
-            ];
-        }
-
-        $month_label = function_exists('wp_date') ? wp_date('F Y', $start->getTimestamp()) : $start->format('F Y');
-        require CAMPX_PATH . 'templates/admin/calendar-page.php';
     }
 
     public static function calendar_page(){
@@ -471,7 +430,12 @@ class Admin {
         $start = get_post_meta($booking_id,'_campx_start_date',true);
         $end   = get_post_meta($booking_id,'_campx_end_date',true);
         $admin_email = Plugin::get_settings()['admin_email'] ?? get_option('admin_email');
-        $ics_link = add_query_arg(['campx_ics'=>'booking','id'=>$booking_id], home_url('/'));
+        $settings = Plugin::get_settings();
+        $ics_args = ['campx_ics'=>'booking','id'=>$booking_id];
+        if ( ! empty($settings['ics_token']) ) {
+            $ics_args['token'] = $settings['ics_token'];
+        }
+        $ics_link = add_query_arg($ics_args, home_url('/'));
 
         $subject = sprintf(__('Buchung %s – %s','campx'), $status, $res);
         $headers = ['Content-Type: text/html; charset=UTF-8','From: '.get_bloginfo('name').' <'.$admin_email.'>'];

@@ -7,8 +7,10 @@ class ICS {
         if ( isset($_GET['campx_ics']) ){
             $type = sanitize_text_field($_GET['campx_ics']);
             $id = absint($_GET['id'] ?? 0);
+            self::assert_token();
             if ( $type==='resource' && $id ) self::output_resource_ics($id);
             if ( $type==='booking'  && $id ) self::output_booking_ics($id);
+            if ( $type==='all' ) self::output_all_ics();
         }
     }
 
@@ -41,6 +43,22 @@ class ICS {
         exit;
     }
 
+    public static function output_all_ics(){
+        $events = [];
+        $q = new \WP_Query([
+            'post_type'=>'campx_booking',
+            'posts_per_page'=>-1,
+            'post_status'=>'any',
+            'meta_query'=>[
+                ['key'=>'_campx_status','value'=>'accepted','compare'=>'=']
+            ]
+        ]);
+        foreach($q->posts as $p){ $events[] = self::booking_to_vevent($p->ID); }
+        self::headers('campx-bookings.ics');
+        echo self::wrap( implode("\r\n", $events) );
+        exit;
+    }
+
     protected static function booking_to_vevent($booking_id){
         $start = get_post_meta($booking_id,'_campx_start_date',true);
         $end   = get_post_meta($booking_id,'_campx_end_date',true);
@@ -60,6 +78,20 @@ class ICS {
     protected static function wrap($vevents){
         $prodid='-//CampX Booking//EN';
         return "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:$prodid\r\nCALSCALE:GREGORIAN\r\nMETHOD:PUBLISH\r\n$vevents\r\nEND:VCALENDAR";
+    }
+
+    protected static function assert_token(){
+        $settings = \CampX\Plugin::get_settings();
+        $token = $settings['ics_token'] ?? '';
+        if ( empty($token) ) {
+            return;
+        }
+        $provided = sanitize_text_field($_GET['token'] ?? '');
+        if ( ! $provided || ! hash_equals($token, $provided) ) {
+            status_header(403);
+            echo 'Forbidden';
+            exit;
+        }
     }
     protected static function esc($s){
         $s = (string) $s;
