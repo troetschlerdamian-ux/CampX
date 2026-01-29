@@ -16,6 +16,7 @@ class Admin {
         add_action('save_post_campx_resource', [__CLASS__, 'save_resource_meta']);
         add_action('save_post_campx_booking', [__CLASS__, 'save_booking_meta']);
         add_action('save_post_campx_booking', [__CLASS__, 'ensure_occupancy_for_booking'], 12);
+        add_action('before_delete_post', [__CLASS__, 'handle_booking_delete']);
         add_filter('manage_campx_booking_posts_columns', [__CLASS__, 'bookings_columns']);
         add_action('manage_campx_booking_posts_custom_column', [__CLASS__, 'bookings_columns_content'], 10, 2);
         add_action('transition_post_status', [__CLASS__, 'maybe_notify_on_status_change'], 10, 3);
@@ -462,12 +463,19 @@ class Admin {
         $end    = get_post_meta($booking_id,'_campx_end_date',true);
         $units  = max(1,(int) get_post_meta($booking_id,'_campx_units',true));
         $status = get_post_meta($booking_id,'_campx_status',true);
+        \CampX\DB::free_occupancy($booking_id);
         if ( ! $res_id || ! $start || ! $end ) return;
         if ( in_array($status,['declined','expired'], true) ){
-            \CampX\DB::free_occupancy($booking_id);
             return;
         }
         \CampX\DB::reserve_occupancy($res_id, $booking_id, $start, $end, $units, $status ?: 'requested');
+    }
+
+    public static function handle_booking_delete($post_id){
+        if ( get_post_type($post_id) !== 'campx_booking' ) {
+            return;
+        }
+        \CampX\DB::free_occupancy($post_id);
     }
 
     public static function expire_requests(){
