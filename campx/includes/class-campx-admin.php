@@ -11,6 +11,7 @@ class Admin {
     public static function init(){
         add_action('admin_menu', [__CLASS__, 'menu']);
         add_action('admin_init', [__CLASS__, 'register_settings']);
+        add_action('admin_init', [__CLASS__, 'handle_generate_token']);
         add_action('admin_head', [__CLASS__, 'admin_head']);
         add_action('add_meta_boxes', [__CLASS__, 'meta_boxes']);
         add_action('save_post_campx_resource', [__CLASS__, 'save_resource_meta']);
@@ -40,6 +41,21 @@ class Admin {
     public static function register_settings(){
         register_setting('campx_settings_group', 'campx_settings');
         register_setting('campx_templates_group', 'campx_email_templates');
+    }
+
+    public static function handle_generate_token(){
+        if ( ! is_admin() ) {
+            return;
+        }
+        if ( ! isset($_GET['campx_generate_token']) || ! current_user_can('manage_options') ) {
+            return;
+        }
+        check_admin_referer('campx_generate_token');
+        $settings = Plugin::get_settings();
+        $settings['ics_token'] = wp_generate_password(32, false, false);
+        update_option('campx_settings', $settings);
+        wp_safe_redirect(admin_url('admin.php?page=campx'));
+        exit;
     }
 
     public static function admin_head() {
@@ -248,14 +264,6 @@ class Admin {
     }
 
     public static function settings_page(){
-        if ( isset($_GET['campx_generate_token']) && current_user_can('manage_options') ) {
-            check_admin_referer('campx_generate_token');
-            $settings = Plugin::get_settings();
-            $settings['ics_token'] = wp_generate_password(32, false, false);
-            update_option('campx_settings', $settings);
-            wp_safe_redirect(admin_url('admin.php?page=campx'));
-            exit;
-        }
         $s = Plugin::get_settings();
         $tpl = get_option('campx_email_templates', []);
         $tpl_requested = $tpl['requested'] ?? '<p>Hallo {{name}},</p><p>Wir haben deine Buchungsanfrage für <strong>{{resource}}</strong> vom <strong>{{start}}</strong> bis <strong>{{end}}</strong> erhalten und prüfen diese.</p><p>Liebe Grüsse<br>{{site_name}}</p>';
