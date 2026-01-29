@@ -56,7 +56,6 @@
   $resource_webcal = preg_replace('#^https?://#', 'webcal://', $resource_url);
   $all_webcal = preg_replace('#^https?://#', 'webcal://', $all_url);
   ?>
-  <p><strong>ICS (webcal):</strong> <?php _e('Ressourcen-Kalender','campx');?> <code><?php echo esc_html( $resource_webcal ); ?></code></p>
-  <p><strong>ICS (webcal):</strong> <?php _e('Alle Buchungen','campx');?> <code><?php echo esc_html( $all_webcal ); ?></code></p>
-  <p><strong>ICS (https):</strong> <?php _e('Alle Buchungen','campx');?> <code><?php echo esc_html( $all_url ); ?></code></p>
+  <p><strong>ICS:</strong> <?php _e('Ressourcen-Kalender','campx');?> <code><?php echo esc_html( $resource_url ); ?></code></p>
+  <p><strong>ICS:</strong> <?php _e('Alle Buchungen','campx');?> <code><?php echo esc_html( $all_url ); ?></code></p>
 </div>
