@@ -15,6 +15,15 @@
       <tr><th scope="row"><?php _e('Danke-Seite','campx');?></th><td><?php wp_dropdown_pages(['name'=>'campx_settings[thankyou_page_id]','show_option_none'=>__('— keine —','campx'),'option_none_value'=>'0','selected'=>intval($s['thankyou_page_id']??0)]); ?></td></tr>
       <tr><th scope="row"><?php _e('Beim Löschen alle Daten entfernen','campx');?></th><td><label><input type="checkbox" name="campx_settings[wipe_on_uninstall]" value="1" <?php checked(!empty($s['wipe_on_uninstall']));?>> <?php _e('Achtung: löscht Tabellen, Ressourcen & Buchungen beim Plugin-Löschen.','campx');?></label></td></tr>
       <tr>
+        <th scope="row"><?php _e('ICS Refresh-Intervall (Minuten)','campx');?></th>
+        <td>
+          <select name="campx_settings[ics_refresh_minutes]">
+            <?php foreach([15,30,60,120] as $m){ echo '<option value="'.$m.'"'.selected(($s['ics_refresh_minutes'] ?? 60),$m,false).'>'.$m.'</option>'; } ?>
+          </select>
+          <p class="description"><?php _e('Empfohlen für Outlook sind 60 Minuten oder mehr.','campx');?></p>
+        </td>
+      </tr>
+      <tr>
         <th scope="row"><?php _e('ICS-Token','campx');?></th>
         <td>
           <input type="text" name="campx_settings[ics_token]" value="<?php echo esc_attr($s['ics_token']);?>" style="min-width:280px">
@@ -27,6 +36,25 @@
           </p>
         </td>
       </tr>
+    </table>
+    <?php submit_button(); ?>
+  </form>
+
+  <hr/>
+  <h2><?php _e('PDF-Design','campx');?></h2>
+  <form method="post" action="options.php">
+    <?php settings_fields('campx_settings_group'); ?>
+    <table class="form-table" role="presentation">
+      <tr>
+        <th scope="row"><?php _e('PDF Brand-Name','campx');?></th>
+        <td>
+          <input type="text" name="campx_settings[pdf_brand_name]" value="<?php echo esc_attr($s['pdf_brand_name']);?>" style="min-width:280px">
+          <p class="description"><?php _e('Leer lassen, um den Seitennamen zu verwenden.','campx');?></p>
+        </td>
+      </tr>
+      <tr><th scope="row"><?php _e('PDF Primärfarbe','campx');?></th><td><input type="color" name="campx_settings[pdf_primary]" value="<?php echo esc_attr($s['pdf_primary']);?>"></td></tr>
+      <tr><th scope="row"><?php _e('PDF Akzentfarbe','campx');?></th><td><input type="color" name="campx_settings[pdf_accent]" value="<?php echo esc_attr($s['pdf_accent']);?>"></td></tr>
+      <tr><th scope="row"><?php _e('PDF Hinweisfarbe','campx');?></th><td><input type="color" name="campx_settings[pdf_notice]" value="<?php echo esc_attr($s['pdf_notice']);?>"></td></tr>
     </table>
     <?php submit_button(); ?>
   </form>
