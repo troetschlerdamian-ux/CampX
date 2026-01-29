@@ -25,6 +25,7 @@ class Plugin {
             'calendar_months' => 2,
             'thankyou_page_id' => 0,
             'wipe_on_uninstall' => 0,
+            'ics_token' => '',
         ];
         $opt = get_option('campx_settings', []);
         if ( ! is_array($opt) ) { $opt = []; }

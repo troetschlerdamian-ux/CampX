@@ -245,6 +245,14 @@ class Admin {
     }
 
     public static function settings_page(){
+        if ( isset($_GET['campx_generate_token']) && current_user_can('manage_options') ) {
+            check_admin_referer('campx_generate_token');
+            $settings = Plugin::get_settings();
+            $settings['ics_token'] = wp_generate_password(32, false, false);
+            update_option('campx_settings', $settings);
+            wp_safe_redirect(remove_query_arg(['campx_generate_token', '_wpnonce']));
+            exit;
+        }
         $s = Plugin::get_settings();
         $tpl = get_option('campx_email_templates', []);
         $tpl_requested = $tpl['requested'] ?? '<p>Hallo {{name}},</p><p>Wir haben deine Buchungsanfrage für <strong>{{resource}}</strong> vom <strong>{{start}}</strong> bis <strong>{{end}}</strong> erhalten und prüfen diese.</p><p>Liebe Grüsse<br>{{site_name}}</p>';
@@ -471,7 +479,12 @@ class Admin {
         $start = get_post_meta($booking_id,'_campx_start_date',true);
         $end   = get_post_meta($booking_id,'_campx_end_date',true);
         $admin_email = Plugin::get_settings()['admin_email'] ?? get_option('admin_email');
-        $ics_link = add_query_arg(['campx_ics'=>'booking','id'=>$booking_id], home_url('/'));
+        $settings = Plugin::get_settings();
+        $ics_args = ['campx_ics'=>'booking','id'=>$booking_id];
+        if ( ! empty($settings['ics_token']) ) {
+            $ics_args['token'] = $settings['ics_token'];
+        }
+        $ics_link = add_query_arg($ics_args, home_url('/'));
 
         $subject = sprintf(__('Buchung %s – %s','campx'), $status, $res);
         $headers = ['Content-Type: text/html; charset=UTF-8','From: '.get_bloginfo('name').' <'.$admin_email.'>'];
