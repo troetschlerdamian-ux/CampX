@@ -97,6 +97,7 @@ class Rest {
         update_post_meta($booking_id,'_campx_customer_phone',$phone);
         update_post_meta($booking_id,'_campx_notes',$notes);
         update_post_meta($booking_id,'_campx_status','requested');
+        \CampX\Actions::ensure_tokens($booking_id);
 
         if ( ! \CampX\DB::reserve_occupancy($res_id,$booking_id,$start,$end,$units,'requested') ){
             wp_delete_post($booking_id, true);
