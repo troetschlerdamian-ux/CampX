@@ -47,16 +47,12 @@
 
   <?php
   $token = $s['ics_token'] ?? '';
-  $resource_url = home_url('/campx-resource-RESOURCE_ID.ics');
   $all_url = home_url('/campx.ics');
   if ( ! empty($token) ) {
-      $resource_url = add_query_arg(['token' => $token], $resource_url);
       $all_url = add_query_arg(['token' => $token], $all_url);
   }
-  $resource_webcal = preg_replace('#^https?://#', 'webcal://', $resource_url);
   $all_webcal = preg_replace('#^https?://#', 'webcal://', $all_url);
   ?>
-  <p><strong>ICS (webcal):</strong> <?php _e('Ressourcen-Kalender','campx');?> <code><?php echo esc_html( $resource_webcal ); ?></code></p>
   <p><strong>ICS (webcal):</strong> <?php _e('Alle Buchungen','campx');?> <code><?php echo esc_html( $all_webcal ); ?></code></p>
   <p><strong>ICS (https):</strong> <?php _e('Alle Buchungen','campx');?> <code><?php echo esc_html( $all_url ); ?></code></p>
 </div>
