@@ -24,6 +24,7 @@ class Plugin {
 
     public static function add_rewrite_rules(){
         add_rewrite_rule( '^campx\.ics$', 'index.php?campx_ics=all', 'top' );
+        add_rewrite_rule( '^campx-([A-Za-z0-9]+)\.ics$', 'index.php?campx_ics=all&token=$matches[1]', 'top' );
         add_rewrite_rule( '^campx-resource-([^/]+)\.ics$', 'index.php?campx_ics=resource&id=$matches[1]', 'top' );
         add_rewrite_rule( '^campx-booking-([0-9]+)\.ics$', 'index.php?campx_ics=booking&id=$matches[1]', 'top' );
     }

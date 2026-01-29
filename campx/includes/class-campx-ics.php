@@ -40,6 +40,7 @@ class ICS {
     }
 
     protected static function headers($filename='campx.ics'){
+        status_header(200);
         nocache_headers();
         header('Content-Type: text/calendar; charset=utf-8');
         header('Content-Disposition: inline; filename="'.$filename.'"');
@@ -203,7 +204,11 @@ class ICS {
         if ( empty($token) ) {
             return;
         }
-        $provided = sanitize_text_field($_GET['token'] ?? '');
+        $provided = get_query_var('token');
+        if ( empty($provided) && isset($_GET['token']) ) {
+            $provided = sanitize_text_field($_GET['token']);
+        }
+        $provided = sanitize_text_field((string) $provided);
         if ( ! $provided || ! hash_equals($token, $provided) ) {
             status_header(403);
             echo 'Forbidden';
