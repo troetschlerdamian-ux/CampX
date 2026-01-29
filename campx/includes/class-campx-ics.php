@@ -4,7 +4,8 @@ if ( ! defined( 'ABSPATH' ) ) exit;
 
 class ICS {
     public static function listen(){
-        if ( isset($_GET['campx_ics']) ){
+        $type = get_query_var('campx_ics');
+        if ( empty($type) && isset($_GET['campx_ics']) ) {
             $type = sanitize_text_field($_GET['campx_ics']);
             $id = absint($_GET['id'] ?? 0);
             self::assert_token();
