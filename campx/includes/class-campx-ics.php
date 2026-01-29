@@ -7,18 +7,21 @@ class ICS {
         $type = get_query_var('campx_ics');
         if ( empty($type) && isset($_GET['campx_ics']) ) {
             $type = sanitize_text_field($_GET['campx_ics']);
-            $id = absint($_GET['id'] ?? 0);
-            self::assert_token();
-            if ( $type==='resource' && $id ) self::output_resource_ics($id);
-            if ( $type==='booking'  && $id ) self::output_booking_ics($id);
-            if ( $type==='all' ) self::output_all_ics();
         }
+        if ( empty($type) ) {
+            return;
+        }
+        $id = absint(get_query_var('id') ?: ($_GET['id'] ?? 0));
+        self::assert_token();
+        if ( $type==='resource' && $id ) self::output_resource_ics($id);
+        if ( $type==='booking'  && $id ) self::output_booking_ics($id);
+        if ( $type==='all' ) self::output_all_ics();
     }
 
     protected static function headers($filename='campx.ics'){
         nocache_headers();
         header('Content-Type: text/calendar; charset=utf-8');
-        header('Content-Disposition: attachment; filename="'.$filename.'"');
+        header('Content-Disposition: inline; filename="'.$filename.'"');
     }
 
     public static function output_resource_ics($resource_id){
@@ -28,15 +31,14 @@ class ICS {
             'posts_per_page'=>-1,
             'post_status'=>'any',
             'meta_query'=>[
+                'relation' => 'AND',
                 ['key'=>'_campx_resource_id','value'=>$resource_id,'compare'=>'='],
                 self::status_meta_query(),
             ]
         ]);
         foreach($q->posts as $p){
             $event = self::booking_to_vevent($p->ID);
-            if ( $event ) {
-                $events[] = $event;
-            }
+            if ( $event ) $events[] = $event;
         }
         self::headers('campx-resource-'.$resource_id.'.ics');
         echo self::wrap( implode("\r\n", $events) );
@@ -55,11 +57,12 @@ class ICS {
             'post_type'=>'campx_booking',
             'posts_per_page'=>-1,
             'post_status'=>'any',
-            'meta_query'=>[
-                ['key'=>'_campx_status','value'=>'accepted','compare'=>'=']
-            ]
+            'meta_query'=>self::status_meta_query(),
         ]);
-        foreach($q->posts as $p){ $events[] = self::booking_to_vevent($p->ID); }
+        foreach($q->posts as $p){
+            $event = self::booking_to_vevent($p->ID);
+            if ( $event ) $events[] = $event;
+        }
         self::headers('campx-bookings.ics');
         echo self::wrap( implode("\r\n", $events) );
         exit;
@@ -87,6 +90,14 @@ class ICS {
     protected static function wrap($vevents){
         $prodid='-//CampX Booking//EN';
         return "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:$prodid\r\nCALSCALE:GREGORIAN\r\nMETHOD:PUBLISH\r\n$vevents\r\nEND:VCALENDAR";
+    }
+
+    protected static function status_meta_query(){
+        return [
+            'relation' => 'OR',
+            ['key'=>'_campx_status','value'=>'accepted','compare'=>'='],
+            ['key'=>'_campx_status','value'=>'requested','compare'=>'='],
+        ];
     }
 
     protected static function assert_token(){
