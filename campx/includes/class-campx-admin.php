@@ -253,7 +253,7 @@ class Admin {
             $settings = Plugin::get_settings();
             $settings['ics_token'] = wp_generate_password(32, false, false);
             update_option('campx_settings', $settings);
-            wp_safe_redirect(remove_query_arg(['campx_generate_token', '_wpnonce']));
+            wp_safe_redirect(admin_url('admin.php?page=campx'));
             exit;
         }
         $s = Plugin::get_settings();
